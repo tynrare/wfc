@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script async defer src='wfc.js'></script>
+    <style>
+    canvas{
+        //border:1px solid black;
+        image-rendering: pixelated;
+		margin: auto;
+		scale: 2;
+	}
+	body {
+		display: flex;
+		height: 100vh;
+		margin: 0;
+	}
+	#progressanim {
+		position: absolute;
+		transform: translate(-50%, 0%);
+		margin-top: 50vh;
+		margin-left: 50vw;
+	}
+	#sourceimg {
+		position: absolute;
+		image-rendering: pixelated;
+		margin: 10px;
+	}
+    </style>
+	
+	<style>
+	.progress {
+	  display: block;
+	  --height-of-loader: 4px;
+	  --loader-color: #0071e2;
+	  width: 130px;
+	  height: var(--height-of-loader);
+	  border-radius: 30px;
+	  background-color: rgba(0,0,0,0.2);
+	  position: relative;
+	}
+
+	.progress::before {
+	  content: "";
+	  position: absolute;
+	  background: var(--loader-color);
+	  top: 0;
+	  left: 0;
+	  width: 0%;
+	  height: 100%;
+	  border-radius: 30px;
+	  animation: moving 1s ease-in-out infinite;
+	  ;
+	}
+
+	@keyframes moving {
+	  50% {
+		width: 100%;
+	  }
+
+	  100% {
+		width: 0;
+		right: 0;
+		left: unset;
+	  }
+	}
+	</style>
+  </head>
+  <body>
+	<span id='progressanim' class="progress"></span>
+    <canvas id="output" width="48" height="48"></canvas>
+	<img id='sourceimg' src="res/dollar.png"/>
+    <script>
+		var done = function() {
+			progressanim.classList.remove('progress');
+		}
+		
+		var img_to_data = function(img) {
+			var c = document.createElement("canvas");
+			c.width = img.width;
+			c.height = img.height;
+			var ctx = c.getContext("2d");
+			ctx.drawImage(img,0,0);
+			return ctx.getImageData(0,0,img.width,img.height);
+		}
+	
+		var img_url_to_data = function(path, callback){
+		  var img = document.createElement("img")
+		  img.src = path
+		  img.onload = function(e){
+			console.log(`got image ${path} ${this.width}px:${this.height}px`)
+			var c = document.createElement("canvas")
+			c.width = this.width
+			c.height = this.height
+			var ctx = c.getContext("2d")
+			ctx.drawImage(this,0,0)
+			callback(ctx.getImageData(0,0,this.width,this.height))
+		  }
+		}
+		
+		var wfc = function(id){
+		const timestamp = Date.now();
+			console.log('ran wfc...')
+			
+		  output = document.getElementById("output")
+		  ctx = output.getContext("2d")
+		  imgData = ctx.createImageData(output.width, output.height)
+		  // input, width, height, N, outputWidth, outputHeight, periodicInput, periodicOutput, symmetry, ground
+		  model = new OverlappingModel(id.data, id.width, id.height, 2, output.width, output.height, true, false, 1, 0) 
+		  //seed, limit
+		  
+		  return model.generate(Math.random, 0)
+			.then(() => {
+				model.graphics(imgData.data)
+				ctx.putImageData(imgData, 0, 0)
+				  
+				const delta = new Date(Date.now() - timestamp);
+				const printtime = `${delta.getMinutes()}m:${delta.getSeconds()}s`;
+				  
+				console.log(`wfc.. done in ${printtime}`);
+				
+				done();
+			})
+			.catch(() => {
+				console.log(`wfc.. failed. restart`);
+				wfc(id)
+			 });
+		}
+		
+		function main() {
+			wfc(img_to_data(sourceimg))
+		}
+		
+    </script>
+	
+	<script>
+	document.addEventListener('readystatechange', event => {
+	  switch (document.readyState) {
+		case "loading":
+		  break;
+		case "interactive":
+		  break;
+		case "complete":
+			main();
+		  break;
+	  }
+	});
+	</script>
+  </body>
+</html>
